@@ -46,9 +46,18 @@ async function syncRoom_name_to_roomId() {
 
 async function create_syncRoom(name) {
     console.log("creating", name)
-    const { group } = await post('/v1/groups.create', { name, customFields: { ldapSync: true } })
-    _syncRoom_name_to_roomId = undefined // clear clache
-    return group._id
+    try {
+        const { group } = await post('/v1/groups.create', { name, customFields: { ldapSync: true } })
+        _syncRoom_name_to_roomId = undefined // clear clache
+        return group._id
+    } catch (e) {
+        if (e.errorType === 'error-duplicate-channel-name') {
+            console.error(`room ${name} already exists. It must not correctly have "customFields.ldapSync"`)
+            return undefined
+        } else {
+            throw e
+        }
+    }
 }
 
 async function sync_user_rooms(user, wantedRooms) {
@@ -62,9 +71,11 @@ async function sync_user_rooms(user, wantedRooms) {
         await post('/v1/groups.kick', { roomId, userId })
     }
     for (const name of _.difference(wantedRooms, userSyncRooms)) {
-        let roomId = name_to_id[name] || create_syncRoom(name)
-        console.log("adding user", user.username, "to", name)
-        await post('/v1/groups.invite', { roomId, userId })
+        let roomId = name_to_id[name] || await create_syncRoom(name)
+        if (roomId) {
+            console.log("adding user", user.username, "to", name)
+            await post('/v1/groups.invite', { roomId, userId })
+        }
     }
 }
 
