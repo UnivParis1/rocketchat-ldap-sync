@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "ldapjs-promise-disconnectwhenidle": "github:UnivParis1/node-ldapjs-promise-disconnectWhenIdle",
+    "lodash": "^4.17.20",
+    "node-fetch": "^2.6.1",
+    "ws": "^7.4.0"
+  }
+}
