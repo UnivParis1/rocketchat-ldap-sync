@@ -12,8 +12,8 @@ const compute_bio = (user) => (
 
 const compute_rooms = (user) => ([
     user.affectation.ou,
-    ...user.affectation.parent ? [user.affectation.parent.ou] : []
-])
+    (user.affectation.parent || {}).ou,
+].filter(s => s))
 
 
 async function sync_user(username) {
