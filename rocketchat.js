@@ -50,12 +50,16 @@ async function syncRoom_name_to_roomId() {
     return _syncRoom_name_to_roomId
 }
 
-async function create_syncRoom(name) {
-    console.log("creating", name)
+async function create_syncRoom({ name, description }) {
+    const topic = `Salon privé d'échange pour les membres ${name}`
+    console.log("creating", name, description)
     try {
         const { group } = await post('/v1/groups.create', { name, customFields: { ldapSync: true } })
         _syncRoom_name_to_roomId = undefined // clear clache
-        return group._id
+        const roomId = group._id
+        await post('/v1/groups.setDescription', { roomId, description })
+        await post('/v1/groups.setTopic', { roomId, topic })
+        return roomId
     } catch (e) {
         if (e.errorType === 'error-duplicate-channel-name') {
             console.error(`room ${name} already exists. It must not correctly have "customFields.ldapSync"`)
@@ -68,18 +72,18 @@ async function create_syncRoom(name) {
 
 async function sync_user_rooms(user, wantedRooms) {
     const name_to_id = await syncRoom_name_to_roomId()
-    const userSyncRooms = user.rooms.map(r => r.name).filter(name => name_to_id[name])
+    const userSyncRooms = user.rooms.filter(({ name }) => name_to_id[name])
     
     const userId = user._id
-    for (const name of _.difference(userSyncRooms, wantedRooms)) {
+    for (const { name } of _.differenceBy(userSyncRooms, wantedRooms, 'name')) {
         const roomId = name_to_id[name]
         console.log("removing user", user.username, "from", name)
         await post('/v1/groups.kick', { roomId, userId })
     }
-    for (const name of _.difference(wantedRooms, userSyncRooms)) {
-        let roomId = name_to_id[name] || await create_syncRoom(name)
+    for (const room of _.differenceBy(wantedRooms, userSyncRooms, 'name')) {
+        let roomId = name_to_id[room.name] || await create_syncRoom(room)
         if (roomId) {
-            console.log("adding user", user.username, "to", name)
+            console.log("adding user", user.username, "to", room.name)
             await post('/v1/groups.invite', { roomId, userId })
         }
     }

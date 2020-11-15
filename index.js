@@ -10,10 +10,12 @@ const compute_bio = (user) => (
     ].filter(s => s).join(', ')
 )
 
-const compute_rooms = (user) => ([
-    user.affectation.ou,
-    (user.affectation.parent || {}).ou,
-].filter(s => s))
+const compute_rooms = (user) => (
+    [
+        user.affectation,
+        user.affectation.parent,
+    ].filter(a => a && a.ou).map(({ ou, description }) => ({ name: ou, description }))
+)
 
 
 async function sync_user(username) {
