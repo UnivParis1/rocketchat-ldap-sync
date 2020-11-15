@@ -31,5 +31,6 @@ async function sync_user(username) {
     }
 }
 
-ldap.init()
-rocketchat.listen_users_logging_in(sync_user)
+ldap.init().then(_ => {
+    rocketchat.listen_users_logging_in(sync_user)
+})

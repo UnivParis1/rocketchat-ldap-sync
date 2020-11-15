@@ -122,7 +122,10 @@ function listen_users_logging_in(callback) {
         })
     });
     
-    ws.on('close', () => console.log('disconnected'))
+    ws.on('close', () => {
+        console.log('disconnected from Rocket.Chat WebSocket. Exiting...')
+        process.exit(1) // will rely on systemd to restart
+    })
     
     ws.on('message', (data) => {
         //console.log("=>", data);
