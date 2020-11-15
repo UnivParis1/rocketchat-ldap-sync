@@ -103,7 +103,7 @@ async function getUser(uid) {
     }
 }
 
-function init() {
+async function init() {
     ldap.init({
         uri: config.uri,
         dn: config.binddn,
@@ -111,7 +111,7 @@ function init() {
         disconnectWhenIdle_duration: 5 /* seconds */ * 1000,
         verbose: true,
     });
-    cache_structures()
+    await cache_structures()
 }
 
 module.exports = { init, getUser }
