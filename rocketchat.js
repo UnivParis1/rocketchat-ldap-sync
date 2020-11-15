@@ -20,6 +20,12 @@ const request = async (api_method, qs, body) => {
         params.body = to_json_string(body)
     }
     const response = await fetch(url, params)
+    const contentType = response.headers.get('content-type')
+    if (contentType !== 'application/json') {
+        const err = "expected json, got " + contentType
+        console.error(url, err)
+        throw err
+    }
     const json = await response.json()
     if (json && json.success) {
         return json
