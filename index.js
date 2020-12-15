@@ -11,10 +11,11 @@ const compute_bio = (user) => (
 )
 
 const compute_rooms = (user) => (
+    [ "staff", "teacher", "researcher", "emeritus" ].includes(user.eduPersonPrimaryAffiliation) ?
     [
         user.affectation,
         user.affectation.parent,
-    ].filter(a => a && a.ou).map(({ ou, description }) => ({ fname: ou, description }))
+    ].filter(a => a && a.ou).map(({ ou, description }) => ({ fname: ou, description })) : []
 )
 
 
