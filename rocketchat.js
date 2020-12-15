@@ -93,7 +93,7 @@ async function sync_user_rooms(user, wantedRooms) {
 }
 
 async function sync_user_data(user, wanted_user_data) {
-    const data = _.omitBy(wanted_user_data, (val, key) => user[key] === val)
+    const data = _.omitBy(wanted_user_data, (val, key) => (user[key] || '') === val) // NB: '' means remove value in API, so Rocket.Chat will not store empty values
     if (!_.isEmpty(data)) {
         console.log('setting', user.username, 'data', data)
         await post('/v1/users.update', { userId: user._id, data })
