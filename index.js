@@ -14,7 +14,7 @@ const compute_rooms = (user) => (
     [
         user.affectation,
         user.affectation.parent,
-    ].filter(a => a && a.ou).map(({ ou, description }) => ({ name: ou, description }))
+    ].filter(a => a && a.ou).map(({ ou, description }) => ({ fname: ou, description }))
 )
 
 

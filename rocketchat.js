@@ -41,28 +41,31 @@ const request = async (api_method, qs, body) => {
 const get = async (api_method, qs) => request(api_method, qs, undefined)
 const post = async (api_method, body) => request(api_method, {}, body)
 
-let _syncRoom_name_to_roomId
-async function syncRoom_name_to_roomId() {
-    if (!_syncRoom_name_to_roomId) {
-        const { groups } = await get('/v1/groups.listAll', { query: { "customFields.ldapSync": true } })
-        _syncRoom_name_to_roomId = _.fromPairs(groups.map(g => [ g.name, g._id ]))
+let _syncRooms
+async function syncRooms() {
+    if (!_syncRooms) {
+        const { groups } = await get('/v1/groups.listAll', { query: { "customFields.ldapSync": true }, count: 0 })
+        _syncRooms = {
+            to_fname: _.fromPairs(groups.map(g => [ g._id, g.fname ])),
+            from_fname: _.fromPairs(groups.map(g => [ g.fname, g._id ])),
+        }
     }
-    return _syncRoom_name_to_roomId
+    return _syncRooms
 }
 
-async function create_syncRoom({ name, description }) {
-    const topic = `Salon privé d'échange pour les membres ${name}`
-    console.log("creating", name, description)
+async function create_syncRoom({ fname, description }) {
+    const topic = `Salon privé d'échange pour les membres ${fname}`
+    console.log("creating", fname, description)
     try {
-        const { group } = await post('/v1/groups.create', { name, customFields: { ldapSync: true } })
-        _syncRoom_name_to_roomId = undefined // clear clache
+        const { group } = await post('/v1/groups.create', { name: fname, customFields: { ldapSync: true } })
+        _syncRooms = undefined // clear clache
         const roomId = group._id
         await post('/v1/groups.setDescription', { roomId, description })
         await post('/v1/groups.setTopic', { roomId, topic })
         return roomId
     } catch (e) {
         if (e.errorType === 'error-duplicate-channel-name') {
-            console.error(`room ${name} already exists. It must not correctly have "customFields.ldapSync"`)
+            console.error(`room ${fname} already exists. It must not correctly have "customFields.ldapSync"`)
             return undefined
         } else {
             throw e
@@ -71,19 +74,19 @@ async function create_syncRoom({ name, description }) {
 }
 
 async function sync_user_rooms(user, wantedRooms) {
-    const name_to_id = await syncRoom_name_to_roomId()
-    const userSyncRooms = user.rooms.filter(({ name }) => name_to_id[name])
+    const rooms = await syncRooms()
+    const userSyncRooms = user.rooms.map(room => ({ fname: rooms.to_fname[room.rid], ...room })).filter(room => room.fname)
     
     const userId = user._id
-    for (const { name } of _.differenceBy(userSyncRooms, wantedRooms, 'name')) {
-        const roomId = name_to_id[name]
-        console.log("removing user", user.username, "from", name)
+    for (const room of _.differenceBy(userSyncRooms, wantedRooms, 'fname')) {
+        const roomId = room.rid
+        console.log("removing user", user.username, "from", room.name)
         await post('/v1/groups.kick', { roomId, userId })
     }
-    for (const room of _.differenceBy(wantedRooms, userSyncRooms, 'name')) {
-        let roomId = name_to_id[room.name] || await create_syncRoom(room)
+    for (const room of _.differenceBy(wantedRooms, userSyncRooms, 'fname')) {
+        let roomId = rooms.from_fname[room.fname] || await create_syncRoom(room)
         if (roomId) {
-            console.log("adding user", user.username, "to", room.name)
+            console.log("adding user", user.username, "to", room.fname)
             await post('/v1/groups.invite', { roomId, userId })
         }
     }
