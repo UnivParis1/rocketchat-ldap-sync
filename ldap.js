@@ -86,22 +86,38 @@ async function getRoleGenerique(key, gender_suffix) {
     return roleGenerique_cache[cache_key]
 }
 
-async function getUser(uid) {
-    const user = await simple_ldap_search_one(
+async function getUsers(filter) {
+    const users = await simple_ldap_search(
         "ou=people," + config.base,
-        "(uid=" + uid + ")",
-        [ 'eduPersonPrimaryAffiliation', 'supannEntiteAffectation', 'supannRoleGenerique', 'supannCivilite', 'supannListeRouge', 'modifyTimestamp' ],
+        filter,
+        [ config.username_attr, 'displayName', 'mail', 'eduPersonPrimaryAffiliation', 'supannEntiteAffectationPrincipale', 'supannRoleGenerique', 'supannCivilite', 'supannListeRouge', 'modifyTimestamp' ],
     )
-    if (!user) return;
+    return await Promise.all(users.map(exportUser))
+}
+async function exportUser(user) {
     const gender_suffix = civilite_to_gender_suffix(user.supannCivilite)
-    
+    let affectation = {}
+    if (user.supannEntiteAffectationPrincipale) {
+        affectation = structures[user.supannEntiteAffectationPrincipale]
+        if (!affectation) {
+            console.error("unknown structure " + user.supannEntiteAffectationPrincipale)
+            affectation = {};
+        }
+    }
+
     return { 
-        ...user, 
+        ...user,
+        username: user[config.username_attr],
         supannListeRouge: user.supannListeRouge === "TRUE",
-        affectation: user.supannEntiteAffectation && structures[user.supannEntiteAffectation] || {},
+        affectation,
         supannRoleGenerique: await Promise.all(ldap.manyAttrs(user.supannRoleGenerique).map(key => getRoleGenerique(key, gender_suffix))),
     }
 }
+
+async function getUser(username) {
+    return (await getUsers("(" + config.username_attr + "=" + username + ")"))[0]
+}
+
 
 async function init() {
     ldap.init({
@@ -114,4 +130,4 @@ async function init() {
     await cache_structures()
 }
 
-module.exports = { init, getUser }
+module.exports = { init, getUser, getUsers }

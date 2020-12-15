@@ -9,5 +9,7 @@ module.exports = {
     base: 'dc=univ,dc=fr',
     binddn: 'cn=rocketchat,ou=admin,dc=univ,dc=fr',
     password: 'xxx',
+
+    username_attr: 'uid',
   },
 }
