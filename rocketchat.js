@@ -101,10 +101,23 @@ async function sync_user_data(user, wanted_user_data) {
 }
 
 async function sync_user(username, wanted_user_data, wantedRooms) {
-    //console.log(`sync_user(${username}, ${JSON.stringify(wanted_user_data)}, ${wantedRooms})`)
+    //console.log(`sync_user(${username}, ${JSON.stringify(wanted_user_data)}, ${JSON.stringify(wantedRooms)})`)
 
-    const { user } = (await get("/v1/users.info", { username, fields: { userRooms: 1 } }))
-    await sync_user_data(user, wanted_user_data)
+    let user
+    try {
+        user = (await get("/v1/users.info", { username, fields: { userRooms: 1 } })).user
+    } catch {
+        console.log("creating", username)
+        user = (await post("/v1/users.create", { username, password: Math.random().toString(36), ..._.pick(wanted_user_data, 'email', 'name') })).user
+        user.rooms = []
+
+    }
+    if (user) {
+        user.email = user.emails[0].address // for comparison
+        await sync_user_data(user, wanted_user_data)
+    } else {
+        users.rooms = []
+    }
     await sync_user_rooms(user, wantedRooms)
 }
 

@@ -19,6 +19,14 @@ const compute_rooms = (user) => (
 )
 
 
+async function sync_ldap_user(ldap_user) {
+    try {
+        await rocketchat.sync_user(ldap_user.username, { email: ldap_user.mail, name: ldap_user.displayName, bio: compute_bio(ldap_user) }, compute_rooms(ldap_user))
+    } catch (e) {
+        console.error(e)
+    }
+}
+
 async function sync_user(username) {
     try {
         const ldap_user = await ldap.getUser(username)
@@ -26,7 +34,7 @@ async function sync_user(username) {
             console.log("ignoring unknown LDAP user", username)
             return
         }
-        await rocketchat.sync_user(username, { bio: compute_bio(ldap_user) }, compute_rooms(ldap_user))
+        await sync_ldap_user(ldap_user)
     } catch (e) {
         console.error(e)
     }
