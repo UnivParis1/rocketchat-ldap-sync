@@ -40,6 +40,18 @@ async function sync_user(username) {
     }
 }
 
+async function sync_users(filter) {
+    for (const ldap_user of await ldap.getUsers(filter)) {
+        await sync_ldap_user(ldap_user)
+    }
+}
+
 ldap.init().then(_ => {
-    rocketchat.listen_users_logging_in(sync_user)
+    const [,,cmd,...args] = process.argv
+    if (cmd === 'listen_users_logging_in') {
+        console.log("listen_users_logging_in")
+        rocketchat.listen_users_logging_in(sync_user)
+    } else if (cmd === 'sync_users') {
+        sync_users(args[0])
+    }
 })
