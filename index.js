@@ -50,7 +50,7 @@ ldap.init().then(_ => {
     const [,,cmd,...args] = process.argv
     if (cmd === 'listen_users_logging_in') {
         console.log("listen_users_logging_in")
-        rocketchat.listen_users_logging_in(sync_user)
+        rocketchat.listen_users_logging_in(sync_user, error => { console.error(error); process.exit(1) })
     } else if (cmd === 'sync_users') {
         sync_users(args[0])
     }

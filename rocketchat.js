@@ -121,7 +121,7 @@ async function sync_user(username, wanted_user_data, wantedRooms) {
     await sync_user_rooms(user, wantedRooms)
 }
 
-function listen_users_logging_in(callback) {
+function listen_users_logging_in(callback, onerror) {
 
     const ws = new WebSocket('ws://localhost:3000/websocket');
     const ws_send = (param) => ws.send(JSON.stringify(param))
@@ -148,6 +148,8 @@ function listen_users_logging_in(callback) {
         const m = JSON.parse(data)
         if (m.msg === "ping") {
             ws_send({ msg: "pong" }) // cf https://docs.rocket.chat/api/realtime-api
+        } else if (m.msg === "result" && m.error) {
+            onerror(m.error);
         } else if (m.msg === "changed" && m.collection === "stream-notify-logged" && m.fields.eventName === "user-status") {
             for (const [userId, username, status, _] of m.fields.args) {
                 if (status === 1 && userId !== config.authUserId) {
